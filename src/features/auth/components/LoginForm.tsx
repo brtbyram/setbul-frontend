@@ -1,100 +1,55 @@
 "use client";
 
+import React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { loginSchema, LoginInput } from "@/lib/validations/auth.schema";
-import { Button } from "@/shared/components/ui/button";
-import { Input } from "@/shared/components/ui/input";
-import { Label } from "@/shared/components/ui/label";
+import { loginSchema, LoginInput } from "../validations";
+import TextInput from "./TextInput";
+import PasswordInput from "./PasswordInput";
 import Link from "next/link";
-import { useLogin } from "../hooks/useLogin";
+import { CustomCheckbox } from "./CustomCheckbox";
+import { logIn } from "../api/auth.api";
+import { redirect } from "next/navigation";
 
-export function LoginForm() {
-
-    const loginMutation = useLogin();
-
+export default function LoginForm() {
   const {
     register,
     handleSubmit,
-    formState: { errors },
-  } = useForm<LoginInput>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: {
-      identifier: "",
-      password: "",
-    },
-  });
+    formState: { errors, isSubmitting },
+  } = useForm<LoginInput>({ resolver: zodResolver(loginSchema) });
 
-  const onSubmit = (data: LoginInput) => {
-    loginMutation.mutate(data);
-  };
-  
+  async function onSubmit(data: LoginInput) {
+    try {
+      await logIn(data);
+      redirect("/seller/dashboard");
+      console.log("login success");
+    } catch (err) {
+      console.error(err);
+    }
+  }
 
   return (
-    <div className="w-full max-w-md mx-auto p-6 bg-white">
-      <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold mb-2">Giriş Yap</h1>
-        <p className="text-gray-600">Hesabınıza giriş yapın</p>
+    <form onSubmit={handleSubmit(onSubmit)} className="text-sm max-w-96 w-full space-y-4 mt-4">
+      <TextInput id="identifier" label="Email" type="email" {...register("identifier")} placeholder="Enter your email" />
+
+      <PasswordInput id="password" label="Password" {...register("password")} placeholder="Enter your password" />
+
+      <div className="flex items-center justify-between">
+        <button type="button" className="flex items-center gap-2">
+          <CustomCheckbox id="rememberMe" />
+          <label htmlFor="rememberMe" className="text-sm text-[#909298] cursor-pointer">Remember Me</label>
+        </button>
+        <Link href="/forgot-password" className="text-sm text-black">Forgot Password?</Link>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        {/* Email */}
-        <div>
-          <Label htmlFor="identifier">Email</Label>
-          <Input
-            id="identifier"
-            type="text"
-            placeholder="ornek@email.com"
-            {...register("identifier")}
-            className={errors.identifier ? "border-red-500" : ""}
-          />
-          {errors.identifier && <p className="text-sm text-red-500 mt-1">{errors.identifier.message}</p>}
-        </div>
+      <button type="submit" disabled={isSubmitting} className="w-full bg-green-700 text-white rounded-md h-10 mt-2 hover:bg-green-800 transition-colors">
+        Sign In
+      </button>
 
-        {/* Password */}
-        <div>
-          <Label htmlFor="password">Şifre</Label>
-          <Input
-            id="password"
-            type="password"
-            placeholder="••••••••"
-            {...register("password")}
-            className={errors.password ? "border-red-500" : ""}
-          />
-          {errors.password && <p className="text-sm text-red-500 mt-1">{errors.password.message}</p>}
-        </div>
-
-        {/* Submit Button */}
-        <Button type="submit" className="w-full" disabled={false}>
-          {false ? "Giriş yapılıyor..." : "Giriş Yap"}
-        </Button>
-
-        {/* Links */}
-        <div className="text-center space-y-2">
-          <Link href="/forgot-password" className="text-sm text-blue-600 hover:underline block">
-            Şifremi Unuttum
-          </Link>
-          <div className="text-sm text-gray-600">
-            Hesabınız yok mu?{" "}
-            <Link href="/register" className="text-blue-600 hover:underline">
-              Kayıt Ol
-            </Link>
-          </div>
-        </div>
-      </form>
-
-      {/* Test Credentials */}
-      <div className="mt-8 p-4 bg-gray-700 rounded-lg text-sm">
-        <p className="font-semibold mb-2">Test Hesapları:</p>
-        <div className="space-y-1 text-xs">
-          <p>
-            <strong>Admin:</strong> admin@example.com / admin123
-          </p>
-          <p>
-            <strong>Satıcı:</strong> seller1@example.com / seller123
-          </p>
-        </div>
+      <div className="text-xs text-red-600">
+        {errors.identifier && <div>{errors.identifier.message}</div>}
+        {errors.password && <div>{errors.password.message}</div>}
       </div>
-    </div>
+    </form>
   );
 }
